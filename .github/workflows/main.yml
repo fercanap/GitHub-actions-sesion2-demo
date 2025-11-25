@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+
 jobs:
   test:
     strategy:
@@ -52,3 +53,17 @@ jobs:
       - name: Usar versión desde output del job anterior
         run: |
           echo "La versión usada en el job test fue: ${{ needs.test.outputs.build-version }}"
+
+  deploy-staging:
+    needs: report
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Mostrar mensaje usando secret a nivel repo
+        run: |
+          echo "Mensaje secreto del repo: ${{ secrets.DEMO_SECRET_MESSAGE }}"
+
+      - name: Mostrar API KEY del entorno staging
+        run: |
+          echo "Usando STAGING_API_KEY (no se verá el valor real en logs): ${{ secrets.STAGING_API_KEY }}"
