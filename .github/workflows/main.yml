@@ -9,21 +9,46 @@ jobs:
   test:
     strategy:
       matrix:
-        node-version: [14, 16, 18, 20]
-        os: [ubuntu-latest, windows-latest]
-
+        node-version: [18]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
-
+    outputs:
+      build-version: ${{ steps.version_step.outputs.version }}
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-
-      - name: Probar combinación
+      - name: Obtener versión simulada
+        id: version_step
         run: |
-          echo "Ejecutando pruebas en OS=${{ matrix.os }} con Node=${{ matrix.node-version }}"
-          echo "OK ✅"
+          VERSION="1.0.${{ github.run_number }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Generar reporte
+        run: |
+          echo "Reporte de pruebas - versión ${{ steps.version_step.outputs.version }}" > report.txt
+          echo "Todas las pruebas pasaron ✅" >> report.txt
+
+      - name: Subir artifact de reporte
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: report.txt
+
+  report:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar artifact de reporte
+        uses: actions/download-artifact@v4
+        with:
+          name: test-report
+
+      - name: Mostrar contenido del reporte
+        run: |
+          echo "Contenido del reporte:"
+          cat report.txt
+
+      - name: Usar versión desde output del job anterior
+        run: |
+          echo "La versión usada en el job test fue: ${{ needs.test.outputs.build-version }}"
